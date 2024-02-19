@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Comment;
 use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
+use App\Models\Comment;
+use App\Models\Post;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
@@ -27,9 +30,17 @@ class CommentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreCommentRequest $request)
+    public function store(Request $request, Post $post)
     {
-        //
+        $data = $request->validate(['body' => ['required', 'string', 'max:2500']]);
+
+        Comment::create([
+            ...$data,
+            'post_id' => $post->id,
+            'user_id' => $request->user()->id,
+        ]);
+
+        return to_route('posts.show', $post);
     }
 
     /**
@@ -59,8 +70,13 @@ class CommentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Comment $comment)
+    public function destroy(Request $request, Comment $comment)
     {
-        //
+
+       $this->authorize('delete', $comment);
+
+        $comment->delete();
+
+        return to_route('posts.show', ['post' => $comment->post_id, 'page' => $request->query('page') ]);
     }
 }
